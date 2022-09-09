@@ -2,12 +2,23 @@
 
 namespace Wulfheart\Maillog;
 
+use Illuminate\Support\Facades\Event;
+use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Wulfheart\Maillog\Commands\MaillogCommand;
+use Wulfheart\Maillog\Listeners\SaveMail;
 
 class MaillogServiceProvider extends PackageServiceProvider
 {
+
+    public function boot()
+    {
+        parent::boot();
+
+        Event::listen('Illuminate\Mail\Events\MessageSent', SaveMail::class);
+    }
+
     public function configurePackage(Package $package): void
     {
         /*
@@ -16,10 +27,17 @@ class MaillogServiceProvider extends PackageServiceProvider
          * More info: https://github.com/spatie/laravel-package-tools
          */
         $package
-            ->name('laravel-maillog')
+            ->name('maillog')
             ->hasConfigFile()
             ->hasViews()
-            ->hasMigration('create_laravel-maillog_table')
-            ->hasCommand(MaillogCommand::class);
+            ->hasRoute('web')
+            ->hasMigration('create_maillog_table')
+            ->hasCommand(MaillogCommand::class)
+            ->hasInstallCommand(fn(InstallCommand $command) => $command
+                ->publishConfigFile()
+                ->publishMigrations()
+                ->askToRunMigrations()
+                ->askToStarRepoOnGitHub("Wulfheart/laravel-maillog")
+            );
     }
 }
